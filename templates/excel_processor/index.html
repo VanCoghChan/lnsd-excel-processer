@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel处理器</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- 添加 Element UI 的 CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 添加自定义样式 -->
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .upload-section {
+            margin-bottom: 30px;
+        }
+        /* 加载对话框样式 */
+        .loading-dialog .el-dialog__header {
+            display: none;
+        }
+        .loading-dialog .el-dialog__body {
+            padding: 30px;
+        }
+
+        /* 加载中的文字动画 */
+        @keyframes ellipsis {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+            100% { content: ""; }
+        }
+        .loading-text::after {
+            content: "";
+            display: inline-block;
+            animation: ellipsis 1.5s infinite;
+            width: 20px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <!-- CSRF Token 隐藏字段 -->
+    <input type="hidden" id="csrf_token" value="{{ csrf_token }}">
+
+    <!-- 使用 verbatim 标签来保护 Vue.js 模板语法 -->
+    {% verbatim %}
+    <div id="app" class="container">
+        <div class="header">
+            <el-page-header @back="goBack" content="Excel处理器"></el-page-header>
+            <h1>Excel文件处理器</h1>
+        </div>
+
+        <el-card class="upload-section">
+            <div slot="header">
+                <span>上传Excel文件</span>
+            </div>
+            <el-form id="uploadForm" enctype="multipart/form-data">
+                <el-upload
+                    class="upload-demo"
+                    drag
+                    action="/upload/"
+                    :auto-upload="false"
+                    :on-change="handleFileChange"
+                    accept=".xlsx,.xls"
+                    :limit="1"
+                    :disabled="loading">
+                    <i class="el-icon-upload"></i>
+                    <div class="el-upload__text">拖拽文件到此处或 <em>点击上传</em></div>
+                    <div class="el-upload__tip" slot="tip">仅支持 Excel 格式 (.xlsx, .xls)</div>
+                </el-upload>
+                <div style="margin-top: 20px; text-align: center;">
+                    <el-button type="primary" @click="submitForm" :loading="loading">
+                        <span v-if="!loading">上传并处理</span>
+                        <span v-else>处理中...</span>
+                    </el-button>
+                </div>
+            </el-form>
+        </el-card>
+
+        <!-- 添加全屏加载动画 -->
+        <el-dialog
+            :visible.sync="loading"
+            :show-close="false"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            width="30%"
+            center
+            custom-class="loading-dialog">
+            <div style="text-align: center;">
+                <el-progress type="circle" :percentage="processingProgress" :status="processingStatus"></el-progress>
+                <p style="margin-top: 20px;" class="loading-text">{{ processingMessage }}</p>
+            </div>
+        </el-dialog>
+
+        <el-card v-if="showResult">
+            <div slot="header">
+                <span>处理结果</span>
+            </div>
+            <div v-if="resultSuccess">
+                <el-result icon="success" title="文件处理成功" :subTitle="`共处理 ${resultData.rows} 行数据`">
+                    <template slot="extra">
+                        <el-descriptions title="Excel数据信息" border>
+                            <el-descriptions-item label="行数">{{ resultData.rows }}</el-descriptions-item>
+                            <el-descriptions-item label="列数">{{ resultData.columns }}</el-descriptions-item>
+                            <el-descriptions-item label="列名" :span="2">{{ resultData.column_names.join(', ') }}</el-descriptions-item>
+                        </el-descriptions>
+                    </template>
+                </el-result>
+            </div>
+            <div v-else>
+                <el-result icon="error" title="处理失败" :subTitle="errorMessage"></el-result>
+            </div>
+        </el-card>
+    </div>
+    {% endverbatim %}
+
+    <!-- 引入必要的JS文件 -->
+    <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    loading: false,
+                    formData: new FormData(),
+                    showResult: false,
+                    resultSuccess: false,
+                    resultData: {
+                        rows: 0,
+                        columns: 0,
+                        column_names: []
+                    },
+                    errorMessage: '',
+                    // 处理进度相关数据
+                    processingProgress: 0,
+                    processingStatus: '',
+                    processingMessage: '准备处理文件...',
+                    processingTimer: null
+                }
+            },
+            methods: {
+                goBack() {
+                    history.back();
+                },
+                handleFileChange(file) {
+                    const formData = new FormData();
+                    formData.append('excel_file', file.raw);
+                    // 添加CSRF令牌
+                    const csrfToken = document.getElementById('csrf_token').value;
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+                    this.formData = formData;
+                },
+                submitForm() {
+                    if (!this.formData.has('excel_file')) {
+                        this.$message.error('请先选择Excel文件');
+                        return;
+                    }
+
+                    // 开始处理
+                    this.loading = true;
+                    this.showResult = false;
+                    this.processingProgress = 0;
+                    this.processingStatus = '';
+                    this.processingMessage = '正在上传文件...';
+
+                    // 模拟进度更新
+                    this.simulateProgress();
+
+                    fetch('/upload/', {
+                        method: 'POST',
+                        body: this.formData,
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // 停止进度模拟
+                        clearInterval(this.processingTimer);
+
+                        // 设置完成状态
+                        this.processingProgress = 100;
+                        this.processingStatus = data.success ? 'success' : 'exception';
+                        this.processingMessage = data.success ? '处理完成!' : '处理失败!';
+
+                        // 短暂显示完成状态后隐藏加载框
+                        setTimeout(() => {
+                            this.loading = false;
+                            this.showResult = true;
+
+                            if (data.success) {
+                                this.resultSuccess = true;
+                                this.resultData = data.data;
+                                this.$message.success('文件处理成功!');
+                            } else {
+                                this.resultSuccess = false;
+                                this.errorMessage = data.message;
+                                this.$message.error('处理失败: ' + data.message);
+                            }
+                        }, 800);
+                    })
+                    .catch(error => {
+                        clearInterval(this.processingTimer);
+                        this.processingProgress = 100;
+                        this.processingStatus = 'exception';
+                        this.processingMessage = '系统错误';
+
+                        setTimeout(() => {
+                            this.loading = false;
+                            this.$message.error('系统错误: ' + error);
+                            console.error('错误:', error);
+                        }, 800);
+                    });
+                },
+                simulateProgress() {
+                    // 模拟文件处理进度
+                    this.processingTimer = setInterval(() => {
+                        if (this.processingProgress < 90) {
+                            this.processingProgress += Math.floor(Math.random() * 10) + 1;
+
+                            // 根据进度更新提示消息
+                            if (this.processingProgress < 30) {
+                                this.processingMessage = '正在上传文件...';
+                            } else if (this.processingProgress < 60) {
+                                this.processingMessage = '正在解析Excel数据...';
+                            } else {
+                                this.processingMessage = '正在处理数据...';
+                            }
+                        }
+                    }, 700);
+                }
+            }
+        })
+    </script>
+</body>
+</html>
