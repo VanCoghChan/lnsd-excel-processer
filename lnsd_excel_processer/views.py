@@ -23,6 +23,8 @@ def upload_excel(request):
 
             # 存储处理结果
             results = {}
+            # 存储所有工作表的分组结果
+            all_grouped_results = []
 
             # 遍历所有的 sheet
             for sheet_name in sheet_names:
@@ -53,7 +55,9 @@ def upload_excel(request):
 
                     try:
                         # 根据目标列进行分组并统计每组的行数
-                        grouped = sheet_df.groupby(TARGET_COLUMNS).size().reset_index(name='count')
+                        grouped = sheet_df.groupby(TARGET_COLUMNS).size().reset_index(name=sheet_name)
+                        print(grouped)
+                        all_grouped_results.append(grouped)
 
                         # 将分组结果转换为字典形式，方便JSON序列化
                         group_data = grouped.to_dict('records')
@@ -82,13 +86,26 @@ def upload_excel(request):
                                 'sheet_name': sheet_name
                             }
                         })
+            # 将所有分组结果纵向拼接
+            if all_grouped_results:
+                # 使用merge方法依次合并所有DataFrame，基于TARGET_COLUMNS进行左连接
+                combined_df = all_grouped_results[0]
+                for i in range(1, len(all_grouped_results)):
+                    combined_df = pd.merge(
+                        combined_df,
+                        all_grouped_results[i],
+                        on=TARGET_COLUMNS,
+                        how='outer'
+                    )
+                
+                combined_df.to_csv("res.csv", encoding="utf-8", index=False)
 
             # 返回所有sheet的处理结果
             return JsonResponse({
                 'success': True,
                 'data': {
-                    'sheet_count': len(sheet_names),
-                    'sheets': results,
+                    'rows': 1,
+                    'columns': 1,
                     'column_names': sheet_df.columns.tolist() if 'sheet_df' in locals() else []
                 }
             })
