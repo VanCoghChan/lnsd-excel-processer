@@ -22,4 +22,5 @@ urlpatterns = [
     #    path('admin/', admin.site.urls),
     path('', index, name='index'),
     path('upload/', upload_excel, name='upload_excel'),
+    path('download/<str:filename>/', download_result, name='download_result'),
 ]
