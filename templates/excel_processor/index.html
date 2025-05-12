@@ -20,121 +20,76 @@
             align-items: flex-start; /* 顶部对齐 */
             padding-top: 40px; /* 给顶部一些空间 */
             box-sizing: border-box;
+            min-height: 100vh; /* Ensure body takes at least full viewport height */
         }
         #app {
             width: 100%;
-            max-width: 900px; /* 适当减小最大宽度，使其在宽屏上更集中 */
+            transition: max-width 0.5s ease-in-out, width 0.5s ease-in-out;
         }
-        .page-header {
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            text-align: center;
+        #app.app-center-content-layout { /* For upload step */ }
+        #app.app-fullscreen-layout { /* For selectFields and now also for showResults */
+            width: 95vw;
+            max-width: none; 
+            margin: 0 auto;
         }
-        .page-header h1 {
-            font-size: 28px; /* 增大标题字号 */
-            color: #303133; /* Element UI 主色调 */
-            font-weight: 500;
-        }
-        .el-card {
-            border-radius: 8px; /* 卡片圆角 */
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); /* 更柔和的阴影 */
-        }
+        /* #app.app-standard-width-layout { max-width: 1200px; width: 100%; margin: 0 auto; } */ /* No longer strictly needed if results use fullscreen */
 
-        /* Content Wrapper for Layout Transition */
+        .page-header { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e0e0e0; text-align: center; }
+        .page-header h1 { font-size: 28px; color: #303133; font-weight: 500; }
+        .el-card { border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-bottom: 20px; }
+
         #app-content-wrapper {
             display: flex;
             width: 100%;
-            transition: justify-content 0.5s ease-in-out; /* Smooth change for justify-content */
+            transition: justify-content 0.5s ease-in-out;
+            align-items: flex-start; 
         }
-
-        #app-content-wrapper.initial-layout {
-            justify-content: center; /* Center the single upload card */
+        #app-content-wrapper.initial-layout, /* For Upload Step */
+        #app-content-wrapper.results-display-layout /* New/Reuse for Results Step */ {
+            justify-content: center; 
+            flex-direction: column; 
+            align-items: center; /* Center the single card (upload or result) */
         }
-
-        #app-content-wrapper.processed-layout {
-            justify-content: space-between; /* Space out upload and result cards */
+        #app-content-wrapper.select-fields-layout { /* For Select Fields Step */
+            justify-content: center; 
+            flex-direction: column; 
+            align-items: stretch; /* Allow cards to stretch to full width of parent */
         }
-
-        .upload-section {
-            transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out, width 0.5s ease-in-out, margin 0.5s ease-in-out;
-            /* Keep hover effect */
-        }
-        .upload-section:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-        }
-
-        /* Upload card styling for initial and processed states */
+        
+        /* Card width adjustments */
         #app-content-wrapper.initial-layout .upload-section {
-            width: 70%; /* Initial width when centered - ADJUSTED */
-            max-width: 630px; /* Max width when centered (70% of 900px) - ADJUSTED */
-            margin: 0 auto; /* Centering */
+            width: 70vw;      
+            max-width: 1100px;  
         }
-        #app-content-wrapper.processed-layout .upload-section {
-            width: 48.5%; /* Width when on the left */
-            margin: 0; /* No auto margin */
-        }
-
-        .upload-section .el-upload-dragger {
-            width: 100%;
-            height: 200px;
-            transition: border-color 0.3s ease-in-out, background-color 0.3s ease-in-out;
-        }
-        .upload-section .el-upload-dragger.is-dragover {
-            border-color: #409EFF;
-            background-color: #ecf5ff;
-        }
-        .upload-section .el-upload-dragger .el-icon-upload {
-            font-size: 60px;
-            margin-top: 40px;
-        }
-        .upload-section .el-upload__tip {
-            margin-top: 10px;
-            color: #909399;
-        }
-        .action-button-container {
-            text-align: center;
-            margin-top: 25px;
+        #app-content-wrapper.select-fields-layout .upload-section, /* If shown in select-fields */
+        #app-content-wrapper.select-fields-layout .select-fields-section,
+        #app-content-wrapper.results-display-layout .result-card {
+            width: 100%; /* These cards take full width of their parent #app (which is 95vw or 70vw based on step) */
+            max-width: none; 
         }
 
-        /* Result card styling and animation */
-        .result-card {
-            margin-top: 0; /* Reset margin if it was inheriting from general .el-card rules */
-            width: 48.5%; /* Width when on the right */
-        }
+        /* REMOVED: .processed-layout related styles for two columns */
 
-        .slide-fade-enter-active {
-            transition: all .4s ease-out .3s; /* Delay enter for smoother sequence */
-        }
-        .slide-fade-leave-active { /* Optional: if results can be hidden again */
-            transition: all .3s ease-in;
-        }
-        .slide-fade-enter, .slide-fade-leave-to {
-            transform: translateX(30px);
-            opacity: 0;
-        }
-
-        .loading-dialog .el-dialog__header {
-            display: none;
-        }
-        .loading-dialog .el-dialog__body {
-            padding: 40px;
-            text-align: center;
-        }
-        .loading-dialog .el-progress {
-            margin-bottom: 20px;
-        }
-        .loading-text::after {
-            content: "";
-            display: inline-block;
-            animation: ellipsis 1.5s infinite;
-            width: 20px;
-            text-align: left;
-        }
-        @keyframes ellipsis {
-            0% { content: "."; } 33% { content: ".."; } 66% { content: "..."; } 100% { content: ""; }
-        }
+        .upload-section, .select-fields-section, .result-card { transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out, width 0.5s ease-in-out, margin 0.5s ease-in-out, opacity 0.5s ease-in-out; }
+        .upload-section:hover, .select-fields-section:hover, .result-card:hover { transform: translateY(-5px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        .checkbox-group-wrapper { max-height: 200px; overflow-y: auto; border: 1px solid #DCDFE6; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; background-color: #fff; }
+        .checkbox-group-wrapper .el-checkbox { display: block; margin-bottom: 8px; }
+        .upload-section .el-upload-dragger { width: 100%; height: 200px; transition: border-color 0.3s ease-in-out, background-color 0.3s ease-in-out; }
+        .upload-section .el-upload-dragger.is-dragover { border-color: #409EFF; background-color: #ecf5ff; }
+        .upload-section .el-upload-dragger .el-icon-upload { font-size: 60px; margin-top: 40px; }
+        .upload-section .el-upload__tip { margin-top: 10px; color: #909399; }
+        .action-button-container { text-align: center; margin-top: 25px; }
+        /* .result-card { margin-top: 0; } */ /* margin-bottom on .el-card handles spacing */
+        .slide-fade-enter-active { transition: all .4s ease-out .3s; }
+        .slide-fade-leave-active { transition: all .3s ease-in; }
+        .slide-fade-enter, .slide-fade-leave-to { transform: translateY(50px); opacity: 0; } /* Changed transform for vertical slide */
+        .loading-dialog .el-dialog__header { display: none; }
+        .loading-dialog .el-dialog__body { padding: 40px; text-align: center; }
+        .loading-dialog .el-progress { margin-bottom: 20px; }
+        .loading-text::after { content: ""; display: inline-block; animation: ellipsis 1.5s infinite; width: 20px; text-align: left; }
+        @keyframes ellipsis { 0% { content: "."; } 33% { content: ".."; } 66% { content: "..."; } 100% { content: ""; } }
+        .preview-section { margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; }
+        .preview-section h4 { margin-bottom: 10px; color: #303133; }
     </style>
 </head>
 <body>
@@ -143,23 +98,25 @@
 
     <!-- 使用 verbatim 标签来保护 Vue.js 模板语法 -->
     {% verbatim %}
-    <el-container id="app">
+    <el-container id="app" :class="appContainerClass">
         <el-main>
             <div class="page-header">
-                <h1><i class="el-icon-document-checked"></i> Excel 智能处理器</h1>
+                <h1><i class="el-icon-document-checked"></i> Excel 智能处理器 - 多步解析</h1>
             </div>
 
-            <div id="app-content-wrapper" :class="uiLayout">
-                <el-card class="upload-section" shadow="hover">
+            <div id="app-content-wrapper" :class="uiLayoutClass">
+                <!-- Step 1: Upload Section -->
+                <el-card class="upload-section" shadow="hover" v-if="uiStep === 'upload'">
                     <div slot="header">
                         <i class="el-icon-upload2"></i>
-                        <span>上传并处理您的Excel文件</span>
+                        <span>1. 上传Excel文件</span>
                     </div>
                     <el-form id="uploadForm" enctype="multipart/form-data">
                         <el-upload
+                            ref="uploader"
                             class="upload-demo"
                             drag
-                            action="/upload/" 
+                            action="/upload_metadata/" 
                             :auto-upload="false"
                             :on-change="handleFileChange"
                             accept=".xlsx,.xls"
@@ -170,52 +127,83 @@
                             <div class="el-upload__tip" slot="tip">请上传 .xlsx 或 .xls 格式的Excel文件</div>
                         </el-upload>
                         <div class="action-button-container">
-                            <el-button type="primary" @click="submitForm" :loading="loading" icon="el-icon-s-promotion" size="medium">
-                                <span v-if="!loading">开始处理</span>
-                                <span v-else>正在处理...</span>
+                            <el-button type="primary" @click="submitFormForMetadata" :loading="loading" icon="el-icon-s-promotion" size="medium">
+                                <span v-if="!loading">获取工作表信息</span>
+                                <span v-else>正在读取...</span>
                             </el-button>
                         </div>
                     </el-form>
                 </el-card>
 
+                <!-- Step 2: Select Fields Section -->
+                <el-card class="select-fields-section" shadow="hover" v-if="uiStep === 'selectFields'">
+                    <div slot="header">
+                        <i class="el-icon-s-operation"></i>
+                        <span>2. 选择解析选项 (已上传: {{ uploadedFileName || '文件' }})</span>
+                    </div>
+                    <div v-if="excelMetadata && excelMetadata.sheets">
+                        <h4>选择要处理的工作表 (Sheets):</h4>
+                        <div class="checkbox-group-wrapper">
+                            <el-checkbox-group v-model="selectedSheetNames">
+                                <el-checkbox v-for="sheet in excelMetadata.sheets" :label="sheet.name" :key="sheet.name">{{ sheet.name }}</el-checkbox>
+                            </el-checkbox-group>
+                        </div>
+
+                        <h4>选择用于额外统计的列 (可选, 必须为数值型):</h4>
+                         <p v-if="!excelMetadata.all_available_columns || excelMetadata.all_available_columns.length === 0" style="color: #909399;"><i>此Excel中未找到可供选择的公共统计列。</i></p>
+                        <div class="checkbox-group-wrapper" v-else>
+                            <el-checkbox-group v-model="selectedStatColumns">
+                                <el-checkbox v-for="colName in excelMetadata.all_available_columns" :label="colName" :key="colName">{{ colName }}</el-checkbox>
+                            </el-checkbox-group>
+                        </div>
+                        
+                        <!-- Preview Section -->
+                        <div v-if="showPreview" class="preview-section">
+                            <h4>预览表结构 (数据为示例):</h4>
+                            <el-table :data="previewData" border stripe size="small" max-height="250">
+                                <el-table-column
+                                    v-for="column in previewColumns"
+                                    :key="column.prop"
+                                    :prop="column.prop"
+                                    :label="column.label"
+                                    min-width="120">
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </div>
+                    <div v-else>
+                        <p>未能加载工作表信息。</p>
+                    </div>
+                    <div class="action-button-container">
+                        <el-button type="success" @click="runFinalAnalysis" :loading="loading" icon="el-icon-magic-stick" size="medium" :disabled="selectedSheetNames.length === 0">
+                            <span v-if="!loading">开始解析</span>
+                            <span v-else>解析中...</span>
+                        </el-button>
+                    </div>
+                </el-card>
+                
+                <!-- Step 3: Show Results -->
                 <transition name="slide-fade">
-                    <el-card v-if="showResult" class="result-card" shadow="hover">
+                    <el-card v-if="uiStep === 'showResults' && showResult" class="result-card" shadow="hover">
                         <div slot="header">
                             <i :class="resultSuccess ? 'el-icon-success' : 'el-icon-error'"></i>
                             <span>处理结果</span>
                         </div>
                         <div v-if="resultSuccess">
-                            <el-alert
-                                :title="'文件处理成功！共处理 ' + resultData.rows + ' 行数据。'"
-                                type="success"
-                                show-icon
-                                :closable="false"
-                                style="margin-bottom: 20px;">
-                            </el-alert>
+                            <el-alert :title="'文件解析成功！共处理 ' + resultData.rows + ' 行数据。'" type="success" show-icon :closable="false" style="margin-bottom: 20px;"></el-alert>
                             <el-descriptions title="详细数据信息" :column="1" border direction="vertical">
-                                <el-descriptions-item label="总行数">
-                                    <el-tag type="info">{{ resultData.rows }}</el-tag>
-                                </el-descriptions-item>
-                                <el-descriptions-item label="总列数">
-                                    <el-tag type="info">{{ resultData.columns }}</el-tag>
-                                </el-descriptions-item>
+                                <el-descriptions-item label="总行数"><el-tag type="info">{{ resultData.rows }}</el-tag></el-descriptions-item>
+                                <el-descriptions-item label="总列数"><el-tag type="info">{{ resultData.columns }}</el-tag></el-descriptions-item>
                                 <el-descriptions-item label="列名">
                                     <el-tag v-for="colName in resultData.column_names" :key="colName" type="primary" style="margin-right: 5px; margin-bottom: 5px;">{{ colName }}</el-tag>
                                 </el-descriptions-item>
                             </el-descriptions>
                             <div class="action-button-container" v-if="resultData.download_filename">
-                                <el-button type="success" @click="downloadResult" icon="el-icon-download" size="medium">
-                                    下载处理后的Excel文件
-                                </el-button>
+                                <el-button type="success" @click="downloadResult" icon="el-icon-download" size="medium">下载处理后的Excel文件</el-button>
                             </div>
                         </div>
                         <div v-else>
-                            <el-alert
-                                :title="'处理失败: ' + errorMessage"
-                                type="error"
-                                show-icon
-                                :closable="false">
-                            </el-alert>
+                            <el-alert :title="'处理失败: ' + errorMessage" type="error" show-icon :closable="false"></el-alert>
                         </div>
                     </el-card>
                 </transition>
@@ -240,91 +228,179 @@
     <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <script>
+        const TARGET_COLUMNS_FOR_PREVIEW = ['组织', '资源集', '地域']; // Define once
         new Vue({
             el: '#app',
             data() {
                 return {
                     loading: false,
-                    formData: new FormData(),
+                    rawFile: null, // Store the raw file object
+                    formData: new FormData(), // Still used for initial metadata upload
                     showResult: false,
                     resultSuccess: false,
-                    resultData: {
-                        rows: 0,
-                        columns: 0,
-                        column_names: [],
-                        download_filename: null
-                    },
+                    resultData: { rows: 0, columns: 0, column_names: [], download_filename: null },
                     errorMessage: '',
                     // 处理进度相关数据
                     processingProgress: 0,
                     processingStatus: '',
                     processingMessage: '准备处理文件...',
                     processingTimer: null,
-                    uiLayout: 'initial-layout' // initial-layout or processed-layout
+                    
+                    uiStep: 'upload', // 'upload', 'selectFields', 'showResults'
+                    excelMetadata: null, // { temp_file_id, sheets: [{name, columns}], all_available_columns }
+                    tempFileId: null,
+                    selectedSheetNames: [],
+                    selectedStatColumns: [],
+                    // For Preview Table
+                    showPreview: false,
+                    previewColumns: [],
+                    previewData: [],
+                    uploadedFileName: '' // For display
+                }
+            },
+            computed: {
+                appContainerClass() { 
+                    if (this.uiStep === 'selectFields' || this.uiStep === 'showResults') return 'app-fullscreen-layout';
+                    return 'app-center-content-layout'; // Default for upload step
+                },
+                uiLayoutClass() {
+                    if (this.uiStep === 'upload') return 'initial-layout';
+                    if (this.uiStep === 'selectFields' || this.uiStep === 'showResults') return 'select-fields-layout';
+                    return 'initial-layout';
+                }
+            },
+            watch: {
+                excelMetadata(newMeta) {
+                    if (newMeta && newMeta.sheets) {
+                        this.selectedSheetNames = newMeta.sheets.map(s => s.name);
+                    }
+                    // Trigger preview update when metadata is ready and user is in selectFields step
+                    if (this.uiStep === 'selectFields') {
+                        this.updatePreviewTable();
+                    }
+                },
+                selectedSheetNames() {
+                    if (this.uiStep === 'selectFields') this.updatePreviewTable();
+                },
+                selectedStatColumns() {
+                    if (this.uiStep === 'selectFields') this.updatePreviewTable();
                 }
             },
             methods: {
                 handleFileChange(file, fileList) {
-                    // file 是 Element UI 包装的文件对象, file.raw 是原生的 File 对象
                     if (file && file.raw) {
+                        this.rawFile = file.raw;
+                        this.uploadedFileName = file.name; // Store filename for display
                         const newFormData = new FormData();
                         newFormData.append('excel_file', file.raw);
                         const csrfToken = document.getElementById('csrf_token').value;
                         newFormData.append('csrfmiddlewaretoken', csrfToken);
                         this.formData = newFormData;
                     } else {
-                        // 如果文件对象无效或被清除
-                        this.formData = new FormData(); 
-                        // 可以选择性地提示用户
-                        // this.$message.info('文件选择已清除或文件无效。');
+                        this.rawFile = null; this.uploadedFileName = '';
+                        this.formData = new FormData();
                     }
                 },
-                submitForm() {
-                    if (!this.formData.has('excel_file')) {
-                        this.$message({
-                            message: '请先选择一个Excel文件再提交。',
-                            type: 'warning'
-                        });
+                submitFormForMetadata() {
+                    if (!this.rawFile) {
+                        this.$message({ message: '请先选择一个Excel文件。', type: 'warning' });
                         return;
                     }
                     this.loading = true;
-                    this.showResult = false;
+                    this.processingMessage = '正在读取文件信息...';
                     this.processingProgress = 0;
-                    this.processingStatus = '';
-                    this.processingMessage = '正在上传文件...';
-                    this.simulateProgress();
+                    this.simulateProgress('读取中');
 
-                    fetch('/upload/', {
+                    fetch('/upload_metadata/', { method: 'POST', body: this.formData })
+                    .then(response => {
+                        if (!response.ok) return response.json().then(err => { throw new Error(err.message || `HTTP ${response.status}`);});
+                        return response.json();
+                    })
+                    .then(data => {
+                        clearInterval(this.processingTimer);
+                        this.processingProgress = 100;
+                        if (data.success) {
+                            this.excelMetadata = data.data;
+                            this.tempFileId = data.data.temp_file_id;
+                            this.uiStep = 'selectFields';
+                            this.$message.success('文件信息读取成功，请选择解析选项。');
+                            if (this.$refs.uploader) this.$refs.uploader.clearFiles();
+                            this.rawFile = null; // Clear raw file after successful metadata load
+                        } else {
+                            this.errorMessage = data.message || '提取元数据失败。';
+                            this.$message.error(this.errorMessage);
+                        }
+                    })
+                    .catch(error => {
+                        clearInterval(this.processingTimer);
+                        this.processingProgress = 100;
+                        this.errorMessage = error.message || '读取文件信息时发生网络或服务器错误。';
+                        this.$message.error(this.errorMessage);
+                        console.error('Metadata Error:', error);
+                    })
+                    .finally(() => { this.loading = false; });
+                },
+                updatePreviewTable() {
+                    if (this.selectedSheetNames.length === 0) { // Only show preview if at least one sheet is selected
+                        this.showPreview = false;
+                        return;
+                    }
+                    this.showPreview = true;
+                    const newPreviewColumns = [];
+                    TARGET_COLUMNS_FOR_PREVIEW.forEach(col => newPreviewColumns.push({ prop: col, label: col }));
+                    this.selectedSheetNames.forEach(sheetName => newPreviewColumns.push({ prop: sheetName, label: sheetName }));
+                    this.selectedStatColumns.forEach(statCol => newPreviewColumns.push({ prop: statCol, label: statCol }));
+                    this.previewColumns = newPreviewColumns;
+
+                    const mockRow = {};
+                    this.previewColumns.forEach(col => { mockRow[col.prop] = 'xxx'; });
+                    this.previewData = [mockRow, { ...mockRow }, { ...mockRow }]; // Show 3 mock rows
+                },
+                runFinalAnalysis() {
+                    if (this.selectedSheetNames.length === 0) {
+                        this.$message({ message: '请至少选择一个工作表进行处理。', type: 'warning' });
+                        return;
+                    }
+                    this.loading = true;
+                    this.showResult = false; // Hide previous results
+                    this.processingMessage = '正在解析数据...';
+                    this.processingProgress = 0;
+                    this.simulateProgress('解析中');
+
+                    const payload = {
+                        temp_file_id: this.tempFileId,
+                        selected_sheets: this.selectedSheetNames,
+                        additional_stat_columns: this.selectedStatColumns
+                    };
+
+                    fetch('/analyze/', {
                         method: 'POST',
-                        body: this.formData,
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.getElementById('csrf_token').value },
+                        body: JSON.stringify(payload)
                     })
                     .then(response => {
-                        if (!response.ok) {
-                            // 如果HTTP响应状态码不是2xx，也认为是错误
-                            return response.json().then(errData => {
-                                throw new Error(errData.message || `HTTP error! status: ${response.status}`);
-                            });
-                        }
+                        if (!response.ok) return response.json().then(err => { throw new Error(err.message || `HTTP ${response.status}`);});
                         return response.json();
                     })
                     .then(data => {
                         clearInterval(this.processingTimer);
                         this.processingProgress = 100;
                         this.processingStatus = data.success ? 'success' : 'exception';
-                        this.processingMessage = data.success ? '处理完成!' : '处理失败!';
-
+                        this.processingMessage = data.success ? '解析完成!' : '解析失败!';
+                        
+                        // Delay showing results to let loading animation complete
                         setTimeout(() => {
                             this.loading = false;
                             this.showResult = true;
-                            this.uiLayout = 'processed-layout'; // Change layout
+                            this.uiStep = 'showResults'; // This will trigger uiLayoutClass change
                             if (data.success) {
                                 this.resultSuccess = true;
                                 this.resultData = data.data;
-                                this.$message.success('文件处理成功!');
+                                this.$message.success('数据解析成功!');
                             } else {
                                 this.resultSuccess = false;
-                                this.errorMessage = data.message || '未知错误';
-                                this.$message.error('处理失败: ' + this.errorMessage);
+                                this.errorMessage = data.message || '解析数据时发生未知错误。';
+                                this.$message.error('解析失败: ' + this.errorMessage);
                             }
                         }, 800);
                     })
@@ -334,27 +410,25 @@
                         this.processingStatus = 'exception';
                         this.processingMessage = '系统错误';
                         this.loading = false;
-                        this.showResult = true;
-                        this.uiLayout = 'processed-layout'; // Change layout even on error to show message
+                        this.showResult = true; 
+                        this.uiStep = 'showResults'; // Still go to results view to show error
                         this.resultSuccess = false;
-                        this.errorMessage = error.message || '捕获到未知Javascript错误';
+                        this.errorMessage = error.message || '解析过程中发生网络或服务器错误。';
                         this.$message.error('系统错误: ' + this.errorMessage);
-                        console.error('错误详情:', error);
+                        console.error('Analysis Error:', error);
                     });
                 },
-                simulateProgress() {
+                simulateProgress(stagePrefix) {
+                    this.processingProgress = 0; // Reset progress for each stage
                     this.processingTimer = setInterval(() => {
-                        if (this.processingProgress < 95) { // 进度条不到100%，给后端处理留余地
+                        if (this.processingProgress < 95) {
                             this.processingProgress += Math.floor(Math.random() * 5) + 1;
                             if(this.processingProgress > 95) this.processingProgress = 95;
-
-                            if (this.processingProgress < 30) {
-                                this.processingMessage = '正在上传文件...';
-                            } else if (this.processingProgress < 70) {
-                                this.processingMessage = '正在解析与校验...';
-                            } else {
-                                this.processingMessage = '核心数据处理中...';
-                            }
+                            let stageMsg = '...';
+                            if (this.processingProgress < 30) stageMsg = '准备中...';
+                            else if (this.processingProgress < 70) stageMsg = '核心处理中...';
+                            else stageMsg = '即将完成...';
+                            this.processingMessage = `${stagePrefix}: ${stageMsg}`;
                         }
                     }, 600);
                 },
