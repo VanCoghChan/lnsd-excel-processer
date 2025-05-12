@@ -16,11 +16,12 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.urls import path
-from .views import *
+from . import views
 
 urlpatterns = [
     #    path('admin/', admin.site.urls),
-    path('', index, name='index'),
-    path('upload/', upload_excel, name='upload_excel'),
-    path('download/<str:filename>/', download_result, name='download_result'),
+    path('', views.index, name='index'),
+    path('upload_metadata/', views.upload_and_get_metadata_view, name='upload_and_get_metadata'),
+    path('analyze/', views.trigger_final_analysis_view, name='trigger_final_analysis'),
+    path('download/<str:filename>/', views.download_result, name='download_result'),
 ]
