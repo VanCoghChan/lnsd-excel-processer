@@ -90,6 +90,75 @@
         @keyframes ellipsis { 0% { content: "."; } 33% { content: ".."; } 66% { content: "..."; } 100% { content: ""; } }
         .preview-section { margin-top: 25px; padding-top: 15px; border-top: 1px solid #eee; }
         .preview-section h4 { margin-bottom: 10px; color: #303133; }
+
+        /* New styles for grid layout */
+        .sheet-grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+            gap: 20px; /* Spacing between cards */
+            padding: 15px;
+            max-height: 500px; /* Adjust height as needed */
+            overflow-y: auto; /* Allow scrolling if grid exceeds height */
+            border: 1px solid #DCDFE6;
+            border-radius: 4px;
+            background-color: #f5f7fa; /* Slightly different background for the container */
+            margin-top: 10px; /* Add some space above the grid */
+        }
+
+        .sheet-card {
+            border: 1px solid #ebeef5;
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #fff; /* White background for card */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+            display: flex; /* Use flexbox for internal layout */
+            flex-direction: column; /* Stack title and list vertically */
+        }
+
+        .sheet-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #303133;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 1px solid #e4e7ed;
+            padding-bottom: 10px;
+        }
+
+        .column-list {
+            display: flex;
+            flex-direction: column; /* Ensure items stack vertically */
+        }
+
+        .column-item {
+            display: flex;
+            align-items: center; /* Align items vertically in the center */
+            justify-content: space-between; /* Space out checkbox and select */
+            margin-bottom: 10px;
+            padding: 3px 0; /* Adjust vertical padding */
+            min-height: 30px; /* Ensure enough height for wrapped text + select */
+        }
+
+        .column-checkbox {
+            margin-right: 10px !important; /* Override element-ui default margin */
+            flex-grow: 1; /* Allow checkbox label to take space */
+            /* Remove styles causing ellipsis */
+            /* white-space: nowrap; */ 
+            /* overflow: hidden; */
+            /* text-overflow: ellipsis; */ 
+            word-break: break-word; /* Allow long words to break and wrap */
+            line-height: 1.4; /* Adjust line height for wrapped text */
+        }
+
+        .column-select .el-input__inner {
+             padding-right: 20px; /* Adjust padding for mini select */
+             padding-left: 8px;
+        }
+        .column-select {
+            width: 110px !important; /* Slightly smaller width for mini select */
+            flex-shrink: 0; /* Prevent select from shrinking */
+        }
     </style>
 </head>
 <body>
@@ -149,13 +218,47 @@
                             </el-checkbox-group>
                         </div>
 
-                        <h4>选择用于额外统计的列 (可选, 必须为数值型):</h4>
-                         <p v-if="!excelMetadata.all_available_columns || excelMetadata.all_available_columns.length === 0" style="color: #909399;"><i>此Excel中未找到可供选择的公共统计列。</i></p>
-                        <div class="checkbox-group-wrapper" v-else>
-                            <el-checkbox-group v-model="selectedStatColumns">
-                                <el-checkbox v-for="colName in excelMetadata.all_available_columns" :label="colName" :key="colName">{{ colName }}</el-checkbox>
-                            </el-checkbox-group>
+                        <h4>选择用于额外统计的列及聚合方式 (可选):</h4>
+                         <p v-if="!excelMetadata.grouped_available_columns || Object.keys(excelMetadata.grouped_available_columns).every(key => excelMetadata.grouped_available_columns[key].length === 0)" style="color: #909399;"><i>此Excel中未找到可供选择的统计列。</i></p>
+                        
+                        <div v-else class="sheet-grid-container">
+                            <div class="sheet-card" v-for="(columns, sheetName) in excelMetadata.grouped_available_columns" :key="sheetName" v-if="columns.length > 0">
+                                <h5 class="sheet-title">{{ sheetName }}</h5>
+                                <el-checkbox-group class="column-list" v-model="selectedStatColumnsWithOptions.selectedColumns">
+                                    <div class="column-item" v-for="colName in columns" :key="colName">
+                                        <el-checkbox :label="colName" class="column-checkbox">{{ colName.split('-').slice(1).join('-') }}</el-checkbox>
+                                        <el-select
+                                            v-model="selectedStatColumnsWithOptions.options[colName]"
+                                            placeholder="聚合方式"
+                                            size="mini"
+                                            class="column-select"
+                                            :disabled="!selectedStatColumnsWithOptions.selectedColumns.includes(colName)">
+                                            <el-option label="累加(Sum)" value="sum"></el-option>
+                                            <el-option label="平均(Avg)" value="mean"></el-option>
+                                            <el-option label="最大值(Max)" value="max"></el-option>
+                                            <el-option label="最小值(Min)" value="min"></el-option>
+                                            <el-option label="计数(Count)" value="count"></el-option>
+                                        </el-select>
+                                    </div>
+                                </el-checkbox-group>
+                            </div>
                         </div>
+                        
+                        <!-- Display Selected Columns Section -->
+                        <div v-if="selectedStatColumnsWithOptions.selectedColumns.length > 0" style="margin-top: 20px; padding: 10px 15px; border: 1px solid #e4e7ed; border-radius: 4px; background-color: #f9fafc;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #303133;">已选统计字段:</h5>
+                            <div>
+                                <el-tag 
+                                    v-for="colName in selectedStatColumnsWithOptions.selectedColumns" 
+                                    :key="colName" 
+                                    type="info" 
+                                    size="small"
+                                    style="margin-right: 5px; margin-bottom: 5px;">
+                                    {{ colName.split('-').slice(1).join('-') }} ({{ { sum: 'Sum', mean: 'Avg', max: 'Max', min: 'Min', count: 'Count' }[selectedStatColumnsWithOptions.options[colName]] || 'Sum' }})
+                                </el-tag>
+                            </div>
+                        </div>
+                        <!-- End of Display Selected Columns Section -->
                         
                         <!-- Preview Section -->
                         <div v-if="showPreview" class="preview-section">
@@ -228,14 +331,14 @@
     <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <script>
-        const TARGET_COLUMNS_FOR_PREVIEW = ['组织', '资源集', '地域']; // Define once
+        const TARGET_COLUMNS_FOR_PREVIEW = ['组织', '资源集', '地域']; // 定义一次
         new Vue({
             el: '#app',
             data() {
                 return {
                     loading: false,
-                    rawFile: null, // Store the raw file object
-                    formData: new FormData(), // Still used for initial metadata upload
+                    rawFile: null, // 存储原始文件对象
+                    formData: new FormData(), // 仍用于初始元数据上传
                     showResult: false,
                     resultSuccess: false,
                     resultData: { rows: 0, columns: 0, column_names: [], download_filename: null },
@@ -246,27 +349,30 @@
                     processingMessage: '准备处理文件...',
                     processingTimer: null,
                     
-                    uiStep: 'upload', // 'upload', 'selectFields', 'showResults'
-                    excelMetadata: null, // { temp_file_id, sheets: [{name, columns}], all_available_columns }
+                    uiStep: 'upload', // 界面步骤: 'upload', 'selectFields', 'showResults'
+                    excelMetadata: null, // { temp_file_id, sheets: [...], ..., grouped_available_columns }
                     tempFileId: null,
                     selectedSheetNames: [],
-                    selectedStatColumns: [],
-                    // For Preview Table
+                    selectedStatColumnsWithOptions: {
+                        selectedColumns: [], // 已选列名数组 ('sheet-col')
+                        options: {} // 列名到聚合方式的映射对象 ('sum', 'mean', etc.)
+                    },
+                    // 用于预览表格
                     showPreview: false,
                     previewColumns: [],
                     previewData: [],
-                    uploadedFileName: '' // For display
+                    uploadedFileName: '' // 用于显示已上传文件名
                 }
             },
             computed: {
                 appContainerClass() { 
                     if (this.uiStep === 'selectFields' || this.uiStep === 'showResults') return 'app-fullscreen-layout';
-                    return 'app-center-content-layout'; // Default for upload step
+                    return 'app-center-content-layout'; // 上传步骤的默认布局
                 },
                 uiLayoutClass() {
                     if (this.uiStep === 'upload') return 'initial-layout';
                     if (this.uiStep === 'selectFields' || this.uiStep === 'showResults') return 'select-fields-layout';
-                    return 'initial-layout';
+                    return 'initial-layout'; // 默认布局
                 }
             },
             watch: {
@@ -274,7 +380,7 @@
                     if (newMeta && newMeta.sheets) {
                         this.selectedSheetNames = newMeta.sheets.map(s => s.name);
                     }
-                    // Trigger preview update when metadata is ready and user is in selectFields step
+                    // 当元数据准备好且用户处于 selectFields 步骤时，触发预览更新
                     if (this.uiStep === 'selectFields') {
                         this.updatePreviewTable();
                     }
@@ -282,15 +388,38 @@
                 selectedSheetNames() {
                     if (this.uiStep === 'selectFields') this.updatePreviewTable();
                 },
-                selectedStatColumns() {
-                    if (this.uiStep === 'selectFields') this.updatePreviewTable();
+                selectedStatColumnsWithOptions: {
+                    handler() {
+                        // 每当选择或选项更改时更新预览表
+                        if (this.uiStep === 'selectFields') this.updatePreviewTable();
+                        
+                        // 确保为新选中的列设置默认聚合方式 ('sum')
+                        this.selectedStatColumnsWithOptions.selectedColumns.forEach(col => {
+                            if (!(col in this.selectedStatColumnsWithOptions.options)) {
+                                // 使用 Vue.$set 确保添加新属性时的响应性
+                                this.$set(this.selectedStatColumnsWithOptions.options, col, 'sum'); // 默认设为sum，用户可更改
+                            } else if (!this.selectedStatColumnsWithOptions.options[col]) {
+                                // 同时处理选项可能存在但为 null/undefined 的情况
+                                this.$set(this.selectedStatColumnsWithOptions.options, col, 'sum');
+                            }
+                        });
+                        
+                        // 可选：清理已取消选中列的选项（可能不是必需的）
+                        // const currentOptions = this.selectedStatColumnsWithOptions.options;
+                        // for (const colName in currentOptions) {
+                        //     if (!this.selectedStatColumnsWithOptions.selectedColumns.includes(colName)) {
+                        //         this.$delete(this.selectedStatColumnsWithOptions.options, colName);
+                        //     }
+                        // }
+                    },
+                    deep: true // 需要深度监听以观察嵌套属性
                 }
             },
             methods: {
                 handleFileChange(file, fileList) {
                     if (file && file.raw) {
                         this.rawFile = file.raw;
-                        this.uploadedFileName = file.name; // Store filename for display
+                        this.uploadedFileName = file.name; // 存储文件名用于显示
                         const newFormData = new FormData();
                         newFormData.append('excel_file', file.raw);
                         const csrfToken = document.getElementById('csrf_token').value;
@@ -325,7 +454,7 @@
                             this.uiStep = 'selectFields';
                             this.$message.success('文件信息读取成功，请选择解析选项。');
                             if (this.$refs.uploader) this.$refs.uploader.clearFiles();
-                            this.rawFile = null; // Clear raw file after successful metadata load
+                            this.rawFile = null; // 成功加载元数据后清除原始文件引用
                         } else {
                             this.errorMessage = data.message || '提取元数据失败。';
                             this.$message.error(this.errorMessage);
@@ -336,12 +465,12 @@
                         this.processingProgress = 100;
                         this.errorMessage = error.message || '读取文件信息时发生网络或服务器错误。';
                         this.$message.error(this.errorMessage);
-                        console.error('Metadata Error:', error);
+                        console.error('元数据错误:', error);
                     })
                     .finally(() => { this.loading = false; });
                 },
                 updatePreviewTable() {
-                    if (this.selectedSheetNames.length === 0) { // Only show preview if at least one sheet is selected
+                    if (this.selectedSheetNames.length === 0) { // 仅当至少选择一个工作表时才显示预览
                         this.showPreview = false;
                         return;
                     }
@@ -349,12 +478,20 @@
                     const newPreviewColumns = [];
                     TARGET_COLUMNS_FOR_PREVIEW.forEach(col => newPreviewColumns.push({ prop: col, label: col }));
                     this.selectedSheetNames.forEach(sheetName => newPreviewColumns.push({ prop: sheetName, label: sheetName }));
-                    this.selectedStatColumns.forEach(statCol => newPreviewColumns.push({ prop: statCol, label: statCol }));
+                    
+                    // 处理带工作表前缀的字段及其聚合方式
+                    this.selectedStatColumnsWithOptions.selectedColumns.forEach(statCol => {
+                        const aggMethod = this.selectedStatColumnsWithOptions.options[statCol] || 'sum'; // 默认显示
+                        const aggLabel = { sum: 'Sum', mean: 'Avg', max: 'Max', min: 'Min', count: 'Count' }[aggMethod] || 'Sum';
+                        // statCol格式为"sheet-column"
+                        newPreviewColumns.push({ prop: statCol, label: `${statCol} (${aggLabel})` });
+                    });
+                    
                     this.previewColumns = newPreviewColumns;
 
                     const mockRow = {};
                     this.previewColumns.forEach(col => { mockRow[col.prop] = 'xxx'; });
-                    this.previewData = [mockRow, { ...mockRow }, { ...mockRow }]; // Show 3 mock rows
+                    this.previewData = [mockRow, { ...mockRow }, { ...mockRow }]; // 显示3行模拟数据
                 },
                 runFinalAnalysis() {
                     if (this.selectedSheetNames.length === 0) {
@@ -362,7 +499,7 @@
                         return;
                     }
                     this.loading = true;
-                    this.showResult = false; // Hide previous results
+                    this.showResult = false; // 隐藏先前结果
                     this.processingMessage = '正在解析数据...';
                     this.processingProgress = 0;
                     this.simulateProgress('解析中');
@@ -370,7 +507,12 @@
                     const payload = {
                         temp_file_id: this.tempFileId,
                         selected_sheets: this.selectedSheetNames,
-                        additional_stat_columns: this.selectedStatColumns
+                        // 发送结构化的选项数据，而非仅列名
+                        // additional_stat_columns: this.selectedStatColumns 
+                        additional_stat_configs: this.selectedStatColumnsWithOptions.selectedColumns.map(colName => ({
+                            column: colName, // 'sheet-column'
+                            agg: this.selectedStatColumnsWithOptions.options[colName] || 'sum' // 确保发送默认值
+                        }))
                     };
 
                     fetch('/analyze/', {
@@ -388,11 +530,11 @@
                         this.processingStatus = data.success ? 'success' : 'exception';
                         this.processingMessage = data.success ? '解析完成!' : '解析失败!';
                         
-                        // Delay showing results to let loading animation complete
+                        // 延迟显示结果，让加载动画完成
                         setTimeout(() => {
                             this.loading = false;
                             this.showResult = true;
-                            this.uiStep = 'showResults'; // This will trigger uiLayoutClass change
+                            this.uiStep = 'showResults'; // 这将触发 uiLayoutClass 更改
                             if (data.success) {
                                 this.resultSuccess = true;
                                 this.resultData = data.data;
@@ -411,15 +553,15 @@
                         this.processingMessage = '系统错误';
                         this.loading = false;
                         this.showResult = true; 
-                        this.uiStep = 'showResults'; // Still go to results view to show error
+                        this.uiStep = 'showResults'; // 仍跳转到结果视图以显示错误
                         this.resultSuccess = false;
                         this.errorMessage = error.message || '解析过程中发生网络或服务器错误。';
                         this.$message.error('系统错误: ' + this.errorMessage);
-                        console.error('Analysis Error:', error);
+                        console.error('分析错误:', error);
                     });
                 },
                 simulateProgress(stagePrefix) {
-                    this.processingProgress = 0; // Reset progress for each stage
+                    this.processingProgress = 0; // 每个阶段重置进度
                     this.processingTimer = setInterval(() => {
                         if (this.processingProgress < 95) {
                             this.processingProgress += Math.floor(Math.random() * 5) + 1;
