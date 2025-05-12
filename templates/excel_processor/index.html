@@ -133,18 +133,22 @@
 
         .column-item {
             display: flex;
-            align-items: center;
+            align-items: center; /* Align items vertically in the center */
             justify-content: space-between; /* Space out checkbox and select */
             margin-bottom: 10px;
             padding: 3px 0; /* Adjust vertical padding */
+            min-height: 30px; /* Ensure enough height for wrapped text + select */
         }
 
         .column-checkbox {
             margin-right: 10px !important; /* Override element-ui default margin */
             flex-grow: 1; /* Allow checkbox label to take space */
-            white-space: nowrap; /* Prevent label text wrapping */
-            overflow: hidden;
-            text-overflow: ellipsis; /* Show ellipsis if label too long */
+            /* Remove styles causing ellipsis */
+            /* white-space: nowrap; */ 
+            /* overflow: hidden; */
+            /* text-overflow: ellipsis; */ 
+            word-break: break-word; /* Allow long words to break and wrap */
+            line-height: 1.4; /* Adjust line height for wrapped text */
         }
 
         .column-select .el-input__inner {
@@ -225,7 +229,7 @@
                                         <el-checkbox :label="colName" class="column-checkbox">{{ colName.split('-').slice(1).join('-') }}</el-checkbox>
                                         <el-select
                                             v-model="selectedStatColumnsWithOptions.options[colName]"
-                                            placeholder="选择聚合方式"
+                                            placeholder="聚合方式"
                                             size="mini"
                                             class="column-select"
                                             :disabled="!selectedStatColumnsWithOptions.selectedColumns.includes(colName)">
@@ -239,6 +243,22 @@
                                 </el-checkbox-group>
                             </div>
                         </div>
+                        
+                        <!-- Display Selected Columns Section -->
+                        <div v-if="selectedStatColumnsWithOptions.selectedColumns.length > 0" style="margin-top: 20px; padding: 10px 15px; border: 1px solid #e4e7ed; border-radius: 4px; background-color: #f9fafc;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #303133;">已选统计字段:</h5>
+                            <div>
+                                <el-tag 
+                                    v-for="colName in selectedStatColumnsWithOptions.selectedColumns" 
+                                    :key="colName" 
+                                    type="info" 
+                                    size="small"
+                                    style="margin-right: 5px; margin-bottom: 5px;">
+                                    {{ colName.split('-').slice(1).join('-') }} ({{ { sum: 'Sum', mean: 'Avg', max: 'Max', min: 'Min', count: 'Count' }[selectedStatColumnsWithOptions.options[colName]] || 'Sum' }})
+                                </el-tag>
+                            </div>
+                        </div>
+                        <!-- End of Display Selected Columns Section -->
                         
                         <!-- Preview Section -->
                         <div v-if="showPreview" class="preview-section">

@@ -52,11 +52,17 @@ def get_excel_metadata(excel_file):
                 prefixed_columns = [f"{sheet_name}-{col}" for col in columns]
                 prefixed_columns_set.update(prefixed_columns)
 
-                # 识别非全空的字段，并添加到分组字典中
+                # 识别非全空的字段，并添加到分组字典中，排除固有字段
                 for col in columns:
-                    prefixed_col = f"{sheet_name}-{col}"
+                    original_col_name = col # 保存原始列名用于检查
+                    prefixed_col = f"{sheet_name}-{original_col_name}"
+                    
+                    # 检查是否为固有字段
+                    if original_col_name in TARGET_COLUMNS: # TARGET_COLUMNS 包含 ['组织', '资源集', '地域']
+                        continue # 如果是固有字段，则跳过，不添加到可选列表
+                        
                     # 检查 df_sample 中列是否存在且至少有一个非空值
-                    if col in df_sample.columns and df_sample[col].notna().any():
+                    if original_col_name in df_sample.columns and df_sample[original_col_name].notna().any():
                         grouped_available_columns[sheet_name].append(prefixed_col)
                         
             except Exception as e:
