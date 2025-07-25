@@ -1,8 +1,8 @@
-import pandas as pd
 import os
 import uuid
+
+import pandas as pd
 from django.conf import settings
-import numpy as np
 
 TARGET_COLUMNS = ['组织', '资源集', '地域']
 EXCLUDE_SHEETS = ['项目']
@@ -33,13 +33,13 @@ def get_excel_metadata(excel_file):
         
         for sheet_name in sheet_names:
             try:
-                # 读取少量数据以推断类型和检查空值，同时获取列名
+                # 读取少量数据以推断类型���检查空值，同时获取列名
                 try:
                     df_sample = pd.read_excel(xls, sheet_name=sheet_name, nrows=5) 
                     df_headers = pd.read_excel(xls, sheet_name=sheet_name, nrows=0)
                     columns = df_headers.columns.tolist()
                 except Exception as read_err:
-                    # 如果读取少量数据失败（例如空表），只读表头
+                    # 如果读取少量数据失败（例如���表），只读表头
                     print(f"警告：无法读取工作表 {sheet_name} 的样本行，仅读取表头。错误: {read_err}")
                     df_sample = pd.read_excel(xls, sheet_name=sheet_name, nrows=0) 
                     columns = df_sample.columns.tolist()
@@ -61,14 +61,14 @@ def get_excel_metadata(excel_file):
                     if original_col_name in TARGET_COLUMNS: # TARGET_COLUMNS 包含 ['组织', '资源集', '地域']
                         continue # 如果是固有字段，则跳过，不添加到可选列表
                         
-                    # 检查 df_sample 中列是否存在且至少有一个非空值
+                    # 检查 df_sample 中列是否存在且��少有一个非空值
                     if original_col_name in df_sample.columns and df_sample[original_col_name].notna().any():
                         grouped_available_columns[sheet_name].append(prefixed_col)
                         
             except Exception as e:
                 print(f"处理工作表 {sheet_name} 时出错: {e}")
                 sheets_metadata.append({'name': sheet_name, 'columns': [], 'error': str(e)})
-                if sheet_name not in grouped_available_columns: #确保即使出错也有空列表
+                if sheet_name not in grouped_available_columns: #确保即使��错也有空列表
                      grouped_available_columns[sheet_name] = []
 
 
@@ -213,6 +213,38 @@ def perform_final_analysis(temp_file_id, selected_sheet_names, additional_stat_c
             if os.path.exists(temp_file_path): os.remove(temp_file_path)
             return {'success': False, 'message': '最终处理结果为空。'}
         
+        # 新增：根据“组织”和“地域”合并行
+        if '组织' in final_df.columns and '地域' in final_df.columns:
+            grouping_cols = ['组织', '地域']
+
+            # 确定需要聚合的列（排除分组列）
+            agg_cols = [col for col in final_df.columns if col not in grouping_cols]
+
+            agg_spec = {}
+            # 为“资源集”设置聚合规则
+            if '资源集' in agg_cols:
+                agg_spec['资源集'] = 'first'
+
+            for col in agg_cols:
+                if col == '资源集':
+                    continue
+                # 检查是否为额外统计字段
+                if col.endswith('_sum') or col.endswith('_count'):
+                    agg_spec[col] = 'sum'
+                elif col.endswith('_mean'):
+                    agg_spec[col] = 'mean'
+                elif col.endswith('_max'):
+                    agg_spec[col] = 'max'
+                elif col.endswith('_min'):
+                    agg_spec[col] = 'min'
+                else:
+                    # 默认为基本统计字段（工作表计数），进行求和
+                    agg_spec[col] = 'sum'
+
+            if agg_spec:
+                # 执行分组和聚合
+                final_df = final_df.groupby(grouping_cols, as_index=False).agg(agg_spec)
+
         # 确保 TARGET_COLUMNS 在最前面，然后是工作表计数列，最后是统计列
         if all_sheet_count_results:
             count_col_names = sorted([res.columns[-1] for res in all_sheet_count_results if res.columns[-1] not in TARGET_COLUMNS])
@@ -251,4 +283,4 @@ def perform_final_analysis(temp_file_id, selected_sheet_names, additional_stat_c
         if os.path.exists(temp_file_path):
             try: os.remove(temp_file_path)
             except Exception as cleanup_error: print(f"在错误处理期间清理临时文件 {temp_file_path} 时出错: {cleanup_error}")
-        return {'success': False, 'message': error_message} 
+        return {'success': False, 'message': error_message}
